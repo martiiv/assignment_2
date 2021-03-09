@@ -1,4 +1,4 @@
-package assignment_2
+package main
 
 import (
 	"github.com/gorilla/mux"
@@ -22,6 +22,11 @@ func handle() {
 	log.Fatal(http.ListenAndServe(getport(), r))
 }
 
+/*
+ * Function for setting the port
+ * Takes no parameters and returns the port the application is listening to
+ * Will use 8080 localhost for testing
+ */
 func getport() string {
 	var port = os.Getenv("PORT")
 	if port == "" {

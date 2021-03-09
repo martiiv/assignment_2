@@ -1,4 +1,6 @@
-package cmd
+package main
+
+import ()
 
 /*
  * The main file used for running the application
@@ -8,6 +10,8 @@ package cmd
  * @version 0.1
  * @date 09.03.2021
  */
+//TODO Implement endpoint
+//TODO Handle errors
 func main() {
-
+	handle()
 }

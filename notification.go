@@ -1,4 +1,4 @@
-package assignment_2
+package main
 
 import "net/http"
 
@@ -10,6 +10,8 @@ import "net/http"
  * @version 0.1
  * @date 09.03.2021
  */
+//TODO Implement endpoint
+//TODO Handle errors
 func getNotification(w http.ResponseWriter, r *http.Request) {
 
 }
