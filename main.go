@@ -1,7 +1,5 @@
 package main
 
-import ()
-
 /*
  * The main file used for running the application
  * Will use packages from the following files:
