@@ -1,29 +1,24 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
-	"io/ioutil"
 	"net/http"
 )
 
+type All struct {
+	All Country
+}
 type Country struct {
-	Currencies []Currency
+	Confirmed  int
+	Recovered  int
+	Country    string
+	Continent  string
+	Population int
 }
 
-type Currency struct {
-	Code   string
-	Name   string
-	Symbol string
-}
-
-type CountryInfo struct {
-	Countries []string
-	Data      []data
-}
-
-type data struct {
-	Dates string
+type Response struct {
 }
 
 /*
@@ -39,32 +34,24 @@ type data struct {
 //TODO Handle errors
 //TODO implement other endpoiint for date functionality
 func getCountryInfo(w http.ResponseWriter, r *http.Request) {
-	client := &http.Client{}
+	w.Header().Set("Content-Type", "application/json")
 	vars := mux.Vars(r)
 	country := vars["country_name"]
-	startDate := vars["begin_date"]
-	endDate := vars["end_date"]
-	url := "https://covid-api.mmediagroup.fr/v1/history?country=" + country + "&status=Confirmed"
-	fmt.Print(url)
-	r, err := http.NewRequest(http.MethodGet, url, nil)
+	//startDate := vars["begin_date"]
+	//endDate := vars["end_date"]
+	url := "https://covid-api.mmediagroup.fr/v1/cases?country=" + country
+	body := invokeGet(w, r, url)
+
+	var countryInfo = All{}
+	err := json.Unmarshal([]byte(string(body)), &countryInfo)
 	if err != nil {
-		http.Error(w, "Error occurred when reading request", http.StatusBadRequest)
+		fmt.Println("error:", err)
 	}
 
-	//Invokes request using the client
-	res, err := client.Do(r)
-	if err != nil {
-		http.Error(w, "Error occurred handling request:", http.StatusConflict)
-	}
+	fmt.Fprintf(w, "country:"+countryInfo.All.Country+"\n")
+	fmt.Fprintf(w, "continent:"+countryInfo.All.Continent+"\n")
+	fmt.Fprintf(w, "scope: total")
+	fmt.Fprintf(w, "confirmed:%v\n", countryInfo.All.Confirmed)
+	fmt.Fprintf(w, "recovered:%v\n", +countryInfo.All.Recovered)
 
-	//Fetches json from the request
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		http.Error(w, "Error when parsing json response: ", http.StatusGone)
-	}
-
-	fmt.Fprint(w, string(body))
-	if err != nil {
-		http.Error(w, "Error ocurred when displaying content", http.StatusInternalServerError)
-	}
 }
