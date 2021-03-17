@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 )
@@ -10,7 +9,6 @@ func invokeGet(w http.ResponseWriter, r *http.Request, url string) []byte {
 	w.Header().Set("Content-Type", "application/json")
 	client := &http.Client{}
 
-	fmt.Print(url)
 	r, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		http.Error(w, "Error occurred when reading request", http.StatusBadRequest)

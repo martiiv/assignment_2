@@ -11,11 +11,10 @@ type All struct {
 	All Country
 }
 type Country struct {
-	Confirmed  int
-	Recovered  int
 	Country    string
-	Continent  string
 	Population int
+	Continent  string
+	Dates      map[string]int
 }
 
 type Response struct {
@@ -29,17 +28,15 @@ type Response struct {
  * @version 0.1
  * @date 09.03.2021
  */
-//TODO Implement endpoint
-//TODO Implement date
 //TODO Handle errors
 //TODO implement other endpoiint for date functionality
 func getCountryInfo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	vars := mux.Vars(r)
 	country := vars["country_name"]
-	//startDate := vars["begin_date"]
-	//endDate := vars["end_date"]
-	url := "https://covid-api.mmediagroup.fr/v1/cases?country=" + country
+	startDate := vars["begin_date"]
+	endDate := vars["end_date"]
+	url := "https://covid-api.mmediagroup.fr/v1/history?country=" + country + "&status=Confirmed"
 	body := invokeGet(w, r, url)
 
 	var countryInfo = All{}
@@ -50,8 +47,9 @@ func getCountryInfo(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprintf(w, "country:"+countryInfo.All.Country+"\n")
 	fmt.Fprintf(w, "continent:"+countryInfo.All.Continent+"\n")
-	fmt.Fprintf(w, "scope: total")
-	fmt.Fprintf(w, "confirmed:%v\n", countryInfo.All.Confirmed)
-	fmt.Fprintf(w, "recovered:%v\n", +countryInfo.All.Recovered)
-
+	fmt.Fprintf(w, "scope: "+startDate+"-"+endDate+"\n")
+	fmt.Fprintf(w, "confirmed:%v\n", countryInfo.All.Dates[endDate]-countryInfo.All.Dates[startDate])
+	fmt.Fprintf(w, "recovered:%v\n")
+	fmt.Fprintf(w, "startdate: %v\n", +countryInfo.All.Dates[startDate])
+	fmt.Fprintf(w, "enddate: %v\n", +countryInfo.All.Dates[endDate])
 }
