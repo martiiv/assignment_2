@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"math"
 	"net/http"
 )
 
@@ -49,12 +50,20 @@ func formatResponse(w http.ResponseWriter, r *http.Request) {
 	startDate := vars["begin_date"]        //Start date from url
 	endDate := vars["end_date"]            //End date from url
 
+	confirmedInterval := float64(confirmed.All.Dates[endDate] - confirmed.All.Dates[startDate])
+	recoveredInterval := recovered.All.Dates[endDate] - recovered.All.Dates[startDate]
+	TotalPopulation := float64(confirmed.All.Population)
+
+	populationPercentage := float64(confirmedInterval/TotalPopulation) * 100
+
 	//Formatting output as specified in assignment
 	fmt.Fprintf(w, "country:"+confirmed.All.Country+"\n")
 	fmt.Fprintf(w, "continent:"+confirmed.All.Continent+"\n")
 	fmt.Fprintf(w, "scope: "+startDate+"-"+endDate+"\n")
-	fmt.Fprintf(w, "confirmed:%v\n", confirmed.All.Dates[endDate]-confirmed.All.Dates[startDate])
-	fmt.Fprintf(w, "recovered:%v\n", recovered.All.Dates[endDate]-recovered.All.Dates[startDate])
+	fmt.Fprintf(w, "confirmed:%v \n", confirmedInterval)
+	fmt.Fprintf(w, "recovered:%v\n", recoveredInterval)
+	fmt.Fprintf(w, "population_percentage:%v\n", math.Ceil(populationPercentage*100)/100)
+
 }
 
 /*
