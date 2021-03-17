@@ -15,7 +15,7 @@ import (
  */
 func handle() {
 	r := mux.NewRouter()
-	r.HandleFunc("/corona/v1/country/{country_name}/{begin_date}/{end_date}", getCountryInfo)
+	r.HandleFunc("/corona/v1/country/{country_name}/{begin_date}/{end_date}", formatResponse)
 	r.HandleFunc("/corona/v1/policy/{:country_name}{?begin_date-end_date}", getPolicy)
 	r.HandleFunc("/corona/v1/diag/", getDiagnostics)
 	r.HandleFunc("/corona/v1/notifications/", getNotification)
