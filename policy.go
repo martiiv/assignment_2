@@ -10,16 +10,16 @@ package main
  *					getPolicy()    		for getting stringency information
  * 					formatOutput() 		for formatting output
  * @author Martin Iversen
- * @version 0.8
+ * @version 0.9
  * @date 18.03.2021
  */
-//TODO Implement trend value in formatOutput function
 //TODO Handle errors
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
 	"log"
+	"math"
 	"net/http"
 )
 
@@ -55,14 +55,15 @@ func formatOutput(w http.ResponseWriter, r *http.Request) {
 	countryName := vars["country_name"]
 	startDate := vars["begin_date"] //Start date from url
 	endDate := vars["end_date"]     //End date from url
-	policy := getPolicy(w, r)
-	fmt.Println(policy)
+	policyStartDate := getPolicy(w, r, startDate)
+	policyEndDate := getPolicy(w, r, endDate)
+	confirmedDiff := float64(policyEndDate.StringencyData.Stringency_actual - policyStartDate.StringencyData.Stringency_actual)
 
 	//Formatting output as specified in assignment
 	fmt.Fprintf(w, "country:"+countryName+"\n")
 	fmt.Fprintf(w, "scope: "+startDate+"-"+endDate+"\n")
-	fmt.Fprintf(w, "stringency:%v \n", policy.StringencyData.Stringency)
-	fmt.Fprintf(w, "trend:%v\n")
+	fmt.Fprintf(w, "stringency:%v \n", policyEndDate.StringencyData.Stringency_actual)
+	fmt.Fprintf(w, "trend:%v\n", math.Ceil(confirmedDiff*100)/100)
 }
 
 /*
@@ -70,12 +71,10 @@ func formatOutput(w http.ResponseWriter, r *http.Request) {
  * This method uses the https://covidtrackerapi.bsg.ox.ac.uk api
  * It returns a Stringency object with information
  */
-func getPolicy(w http.ResponseWriter, r *http.Request) Stringency {
+func getPolicy(w http.ResponseWriter, r *http.Request, date string) Stringency {
 	//Defining variables
-	vars := mux.Vars(r)
-	startDate := vars["begin_date"] //Start date from url
 	Code := getCountryCode(w, r)
-	url := "https://covidtrackerapi.bsg.ox.ac.uk/api/v2/stringency/actions/" + Code + "/" + startDate + ""
+	url := "https://covidtrackerapi.bsg.ox.ac.uk/api/v2/stringency/actions/" + Code + "/" + date + ""
 	body := invokeGet(w, r, url) //Invoking request
 
 	var policyInfo = Stringency{}
