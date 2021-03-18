@@ -10,14 +10,14 @@ import (
 /*
  * The handler file, will be used for implementing handlers for each endpoint
  * @author Martin Iversen
- * @version 0.1
- * @date 09.03.2021
+ * @version 0.4
+ * @date 18.03.2021
  */
 func handle() {
 	r := mux.NewRouter()
 	r.HandleFunc("/corona/v1/country/{country_name}/{begin_date}/{end_date}", formatResponse)
-	r.HandleFunc("/corona/v1/policy/{country_name}/{begin_date}/{end_date}", formatOutput)
-	r.HandleFunc("/corona/v1/diag/", getDiagnostics)
+	r.HandleFunc("/corona/v1/policy/{country_name}/?scope={begin_date}/{end_date}", formatOutput)
+	r.HandleFunc("/corona/v1/diag", getDiagnostics)
 	r.HandleFunc("/corona/v1/notifications/", getNotification)
 	log.Fatal(http.ListenAndServe(getPort(), r))
 }

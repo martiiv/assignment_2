@@ -13,7 +13,6 @@ package main
  * @date 17.03.2021
  */
 //TODO Handle errors
-//TODO implement population percentage
 import (
 	"encoding/json"
 	"fmt"

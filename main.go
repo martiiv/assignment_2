@@ -1,5 +1,7 @@
 package main
 
+import "time"
+
 /*
  * The main file used for running the application
  * Will use packages from the following files:
@@ -11,5 +13,6 @@ package main
 //TODO Implement endpoint
 //TODO Handle errors
 func main() {
+	startTime = time.Now()
 	handle()
 }
