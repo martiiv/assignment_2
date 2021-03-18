@@ -1,17 +1,38 @@
 package main
 
+/*
+ * This file contains code for the policy endpoint
+ * This endpoint will be used to get information about what kind of policies
+ * A given country has regarding the coronavirus pandemic
+ * You can if desired get policies in a specified timeframe as well
+ * It uses 3 functions:
+ *  				getCountryCode()	for getting a given country's 3 digit code
+ *					getPolicy()    		for getting stringency information
+ * 					formatOutput() 		for formatting output
+ * @author Martin Iversen
+ * @version 0.8
+ * @date 18.03.2021
+ */
+//TODO Implement trend value in formatOutput function
+//TODO Handle errors
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"log"
 	"net/http"
 )
 
-type PolicyActions struct {
-	PolicyActions StringencyData
+/*
+ * Structs for parsing json object from policy api:
+ * Structure derived from https://covidtrackerapi.bsg.ox.ac.uk
+ *
+ */
+type Stringency struct {
+	StringencyData Data
 }
 
-type StringencyData struct {
+type Data struct {
 	Date_value        string
 	Country_code      string
 	Confirmed         int
@@ -21,17 +42,11 @@ type StringencyData struct {
 }
 
 /**
- * Struct called Currency used for parsing JSON
- * Structure derived from: https://exchangeratesapi.io/
+ * Structs for parsing Json object from restcountries api
+ * Structure derived from: https://restcountries.eu/
  */
 type CountryCode struct {
-	Currencies Currency
-}
-
-type Currency struct {
-	Code   string
-	Name   string
-	Symbol string
+	Alpha3Code string
 }
 
 func formatOutput(w http.ResponseWriter, r *http.Request) {
@@ -41,60 +56,59 @@ func formatOutput(w http.ResponseWriter, r *http.Request) {
 	startDate := vars["begin_date"] //Start date from url
 	endDate := vars["end_date"]     //End date from url
 	policy := getPolicy(w, r)
+	fmt.Println(policy)
 
 	//Formatting output as specified in assignment
 	fmt.Fprintf(w, "country:"+countryName+"\n")
 	fmt.Fprintf(w, "scope: "+startDate+"-"+endDate+"\n")
-	fmt.Fprintf(w, "stringency:%v \n", policy.PolicyActions.Stringency)
+	fmt.Fprintf(w, "stringency:%v \n", policy.StringencyData.Stringency)
 	fmt.Fprintf(w, "trend:%v\n")
 }
 
 /*
- * This file contains code for the policy endpoint
- * This endpoint will be used to get information about what kind of policies
- * A given country has regarding the coronavirus pandemic
- * You can if desired get policies in a specified timeframe as well
- * @author Martin Iversen
- * @version 0.1
- * @date 09.03.2021
+ * Method for getting a json object containing information about stringency trends
+ * This method uses the https://covidtrackerapi.bsg.ox.ac.uk api
+ * It returns a Stringency object with information
  */
-//TODO Implement endpoint
-//TODO Handle errors
-func getPolicy(w http.ResponseWriter, r *http.Request) PolicyActions {
+func getPolicy(w http.ResponseWriter, r *http.Request) Stringency {
 	//Defining variables
 	vars := mux.Vars(r)
-	country := vars["country_name"] //Country name from url
 	startDate := vars["begin_date"] //Start date from url
-	//endDate := vars["end_date"]            //End date from url
-	Code := getCountryCode(w, r, country)
+	Code := getCountryCode(w, r)
 	url := "https://covidtrackerapi.bsg.ox.ac.uk/api/v2/stringency/actions/" + Code + "/" + startDate + ""
 	body := invokeGet(w, r, url) //Invoking request
 
-	var policyInfo = PolicyActions{}
+	var policyInfo = Stringency{}
 	err := json.Unmarshal([]byte(string(body)), &policyInfo)
 	if err != nil {
 		fmt.Println("error:", err)
 	}
+
 	return policyInfo
 }
 
 /*
  * Method for getting a country code from a country name
- * This method uses the exchangerate api from assignment 1
+ * This method uses the restcountries api from assignment 1
  * https://exchangeratesapi.io/
  */
-func getCountryCode(w http.ResponseWriter, r *http.Request, countryName string) string {
+func getCountryCode(w http.ResponseWriter, r *http.Request) string {
 	//Defining variables
-	url := "https://restcountries.eu/rest/v2/name/" + countryName + "?fields=currencies"
+	vars := mux.Vars(r)
+	countryName := vars["country_name"] //Country name from url
+	url := "https://restcountries.eu/rest/v2/name/" + countryName + "?fields=alpha3Code"
 
 	body := invokeGet(w, r, url)
 
-	var country = CountryCode{}
+	var country []CountryCode
 	//Defines an instance of the Country struct
 	if err := json.Unmarshal([]byte(string(body)), &country); err != nil {
-		http.Error(w, "Unmarshalling error", http.StatusBadRequest)
+		log.Printf("error decoding sakura response: %v", err)
+		if e, ok := err.(*json.SyntaxError); ok {
+			log.Printf("syntax error at byte offset %d", e.Offset)
+		}
+		log.Printf("sakura response: %q", body)
 	}
 
-	//Getting our desired variable from the currency struct
-	return country.Currencies.Code
+	return string(country[0].Alpha3Code)
 }
