@@ -13,9 +13,12 @@ import (
 	"strconv"
 )
 
+//TODO Call policy request to get data (line 52), store it in data field in JSONWebhook struct, implement timer to call function to check for change
+
 type JSONWebHook struct {
 	Id guuid.UUID `json: "id"`
 	WebhookRegistation
+	Data
 }
 
 type WebhookRegistation struct {
@@ -43,6 +46,12 @@ func WebHookHandler(w http.ResponseWriter, r *http.Request) {
 
 		webHooks = append(webHooks, webHook)
 		fmt.Println("Webhook " + webHook.Url + " has been registered")
+
+		webHookResponse := JSONWebHook{}
+		webHookResponse.Id = guuid.New()
+		webHookResponse.WebhookRegistation = webHook
+
+		fmt.Fprintf(w, "Id of webhook: %v", webHookResponse.Id)
 
 	case http.MethodGet:
 		err := json.NewEncoder(w).Encode(webHooks)
