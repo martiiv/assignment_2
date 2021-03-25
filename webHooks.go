@@ -19,13 +19,14 @@ import (
 	"encoding/json"
 	"fmt"
 	guuid "github.com/google/uuid" //Used for generating unique ID for webhook
+	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time" //Used for getting the current date
 )
 
-//TODO implement timer to call function to check for change
+//TODO implement timer to call function to check for change and find out how to notify user
 
 //Struct for Json object which will get saved onto firebase
 type JSONWebHook struct {
@@ -49,6 +50,7 @@ var Key = "something"
 var Secret []byte
 
 var webHooks []WebhookRegistation
+var jsonHooks []JSONWebHook
 
 /*
  * Method WebHookHandler
@@ -57,6 +59,8 @@ var webHooks []WebhookRegistation
  *				GetWebhookResponseObject
  */
 func WebHookHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"] //ID from url
 	switch r.Method {
 
 	case http.MethodPost: //Case for registering webhook
@@ -69,14 +73,31 @@ func WebHookHandler(w http.ResponseWriter, r *http.Request) {
 		webHooks = append(webHooks, webHook) //Appends it to the WebhookRegistration object
 		fmt.Println("Webhook " + webHook.Url + " has been registered")
 
-		getWebhookResponseObject(w, r, webHook) //Creates a responseobject for DB saving(see struct for fields)
+		response := getWebhookResponseObject(w, r, webHook) //Creates a responseobject for DB saving(see struct for fields)
+		//TODO Implement checking here
+		fmt.Println(response.Id.String())
 
 	case http.MethodGet: //Case for listing webhooks
 		err := json.NewEncoder(w).Encode(webHooks)
 		if err != nil {
 			http.Error(w, "Not able to encode http Request "+err.Error(), http.StatusBadRequest)
 		}
+
 	case http.MethodDelete: //Case for deleting webhook
+		i := 0
+		for _, hook := range jsonHooks {
+			if hook.Id.String() == id {
+				fmt.Printf("Deleted Webhook with ID: %s", hook.Id)
+				//TODO delete webhook  here
+				//TODO delete jsonHook here
+				i--
+			}
+			i++
+		}
+	default:
+		http.Error(w, "Invalid method "+r.Method, http.StatusBadRequest)
+	}
+
 	}
 }
 
