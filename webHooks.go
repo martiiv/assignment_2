@@ -38,9 +38,7 @@ var Secret []byte
 var webHooks []WebhookRegistation
 
 func WebHookHandler(w http.ResponseWriter, r *http.Request) {
-	currentTime := time.Now()
-	today := currentTime.Format("2006-01-02")
-	fmt.Println(today)
+
 	switch r.Method {
 	case http.MethodPost:
 		webHook := WebhookRegistation{}
@@ -52,18 +50,7 @@ func WebHookHandler(w http.ResponseWriter, r *http.Request) {
 		webHooks = append(webHooks, webHook)
 		fmt.Println("Webhook " + webHook.Url + " has been registered")
 
-		webHookResponse := JSONWebHook{}
-		webHookResponse.Id = guuid.New()
-		webHookResponse.WebhookRegistation = webHook
-		dataStringency := getWebhookDataStringency(w, r, webHookResponse.Country, today)
-
-		webHookResponse.Stringency = dataStringency.StringencyData.Stringency
-		webHookResponse.Confirmed = data.StringencyData.Confirmed
-
-		fmt.Println(data)
-		fmt.Fprintf(w, "Id of webhook: %v", webHookResponse.Id)
-		fmt.Fprintf(w, "Registered stringency:%v", webHookResponse.Stringency)
-		fmt.Fprintf(w, "Registered confirmed cases: %v", webHookResponse.Confirmed)
+		getWebhookResponseObject(w, r, webHook)
 
 	case http.MethodGet:
 		err := json.NewEncoder(w).Encode(webHooks)
@@ -72,6 +59,26 @@ func WebHookHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	case http.MethodDelete:
 	}
+}
+
+func getWebhookResponseObject(w http.ResponseWriter, r *http.Request, hook WebhookRegistation) JSONWebHook {
+	currentTime := time.Now()
+	today := currentTime.Format("2006-01-02")
+	fmt.Println(today)
+
+	webHookResponse := JSONWebHook{}
+	webHookResponse.Id = guuid.New()
+	webHookResponse.WebhookRegistation = hook
+	dataStringency := getWebhookDataStringency(w, r, webHookResponse.Country, today)
+	dataConfirmed := getWebhookDataConfirmed(w, r, webHookResponse.Country)
+	webHookResponse.Stringency = dataStringency.StringencyData.Stringency
+	webHookResponse.Confirmed = dataConfirmed.All.Population
+
+	fmt.Fprintf(w, "Id of webhook: %v \n", webHookResponse.Id)
+	fmt.Fprintf(w, "Registered stringency:%v \n", webHookResponse.Stringency)
+	fmt.Fprintf(w, "Registered confirmed cases: %v \n", webHookResponse.Confirmed)
+
+	return webHookResponse
 }
 
 func getWebhookDataStringency(w http.ResponseWriter, r *http.Request, countryName string, date string) Stringency {
@@ -88,8 +95,18 @@ func getWebhookDataStringency(w http.ResponseWriter, r *http.Request, countryNam
 	return webHookdata
 }
 
-func getWebhookDataConfirmed(w http.ResponseWriter, r *http.Request) {
+func getWebhookDataConfirmed(w http.ResponseWriter, r *http.Request, countryName string) All {
+	//Defining variables
+	url := "https://covid-api.mmediagroup.fr/v1/history?country=" + countryName + "&status=Confirmed"
+	body := invokeGet(w, r, url) //Invoking request
 
+	var countryInfo = All{} //Object for unmarshalling
+	err := json.Unmarshal([]byte(string(body)), &countryInfo)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+
+	return countryInfo
 }
 
 func ServiceHandler(w http.ResponseWriter, r *http.Request) {
