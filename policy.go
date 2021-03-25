@@ -73,7 +73,10 @@ func formatOutput(w http.ResponseWriter, r *http.Request) {
  */
 func getPolicy(w http.ResponseWriter, r *http.Request, date string) Stringency {
 	//Defining variables
-	Code := getCountryCode(w, r)
+	vars := mux.Vars(r)
+	countryName := vars["country_name"]
+
+	Code := getCountryCode(w, r, countryName)
 	url := "https://covidtrackerapi.bsg.ox.ac.uk/api/v2/stringency/actions/" + Code + "/" + date + ""
 	body := invokeGet(w, r, url) //Invoking request
 
@@ -91,10 +94,8 @@ func getPolicy(w http.ResponseWriter, r *http.Request, date string) Stringency {
  * This method uses the restcountries api from assignment 1
  * https://exchangeratesapi.io/
  */
-func getCountryCode(w http.ResponseWriter, r *http.Request) string {
+func getCountryCode(w http.ResponseWriter, r *http.Request, countryName string) string {
 	//Defining variables
-	vars := mux.Vars(r)
-	countryName := vars["country_name"] //Country name from url
 	url := "https://restcountries.eu/rest/v2/name/" + countryName + "?fields=alpha3Code"
 
 	body := invokeGet(w, r, url)

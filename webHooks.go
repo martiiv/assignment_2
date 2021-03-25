@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 //TODO Call policy request to get data (line 52), store it in data field in JSONWebhook struct, implement timer to call function to check for change
@@ -18,7 +19,7 @@ import (
 type JSONWebHook struct {
 	Id guuid.UUID `json: "id"`
 	WebhookRegistation
-	Data
+	Stringency
 }
 
 type WebhookRegistation struct {
@@ -36,6 +37,9 @@ var Secret []byte
 var webHooks []WebhookRegistation
 
 func WebHookHandler(w http.ResponseWriter, r *http.Request) {
+	currentTime := time.Now()
+	today := currentTime.Format("2006-01-02")
+	fmt.Println(today)
 	switch r.Method {
 	case http.MethodPost:
 		webHook := WebhookRegistation{}
@@ -50,8 +54,10 @@ func WebHookHandler(w http.ResponseWriter, r *http.Request) {
 		webHookResponse := JSONWebHook{}
 		webHookResponse.Id = guuid.New()
 		webHookResponse.WebhookRegistation = webHook
-
+		webHookResponse.Stringency = getWebhookData(w, r, webHookResponse.Country, today)
 		fmt.Fprintf(w, "Id of webhook: %v", webHookResponse.Id)
+		fmt.Fprintf(w, "Registered stringency:%v", webHookResponse.StringencyData.Stringency)
+		fmt.Fprintf(w, "Registered confirmed cases: %v", webHookResponse.StringencyData.Confirmed)
 
 	case http.MethodGet:
 		err := json.NewEncoder(w).Encode(webHooks)
@@ -60,6 +66,21 @@ func WebHookHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	case http.MethodDelete:
 	}
+}
+
+func getWebhookData(w http.ResponseWriter, r *http.Request, countryName string, date string) Stringency {
+	//Defining variables
+	Code := getCountryCode(w, r, countryName)
+	url := "https://covidtrackerapi.bsg.ox.ac.uk/api/v2/stringency/actions/" + Code + "/" + date + ""
+	body := invokeGet(w, r, url) //Invoking request
+
+	var policyInfo = Stringency{}
+	err := json.Unmarshal([]byte(string(body)), &policyInfo)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+
+	return policyInfo
 }
 
 func ServiceHandler(w http.ResponseWriter, r *http.Request) {
