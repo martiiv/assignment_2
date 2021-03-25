@@ -7,17 +7,23 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	guuid "github.com/google/uuid"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 )
 
+type JSONWebHook struct {
+	Id guuid.UUID `json: "id"`
+	WebhookRegistation
+}
+
 type WebhookRegistation struct {
-	Url     string
-	Timeout int
-	Field   string
-	Country string
-	Trigger string
+	Url     string `json:"url"`
+	Timeout int64  `json:"timeout"`
+	Field   string `json:"field"`
+	Country string `json:"country"`
+	Trigger string `json:"trigger"`
 }
 
 var Key = "something"

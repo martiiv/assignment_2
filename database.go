@@ -5,7 +5,7 @@ package main
  * author Martin Iversen
  * 22.03.2020
  * version 0.2
- */
+ *
 import (
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
@@ -15,3 +15,4 @@ import (
 
 var ctx context.Context
 var client *firestore.Client
+*/
