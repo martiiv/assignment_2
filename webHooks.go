@@ -19,7 +19,8 @@ import (
 type JSONWebHook struct {
 	Id guuid.UUID `json: "id"`
 	WebhookRegistation
-	Stringency
+	Confirmed  int     `json:confirmed`
+	Stringency float64 `json:stringency`
 }
 
 type WebhookRegistation struct {
@@ -54,10 +55,15 @@ func WebHookHandler(w http.ResponseWriter, r *http.Request) {
 		webHookResponse := JSONWebHook{}
 		webHookResponse.Id = guuid.New()
 		webHookResponse.WebhookRegistation = webHook
-		webHookResponse.Stringency = getWebhookData(w, r, webHookResponse.Country, today)
+		dataStringency := getWebhookDataStringency(w, r, webHookResponse.Country, today)
+
+		webHookResponse.Stringency = dataStringency.StringencyData.Stringency
+		webHookResponse.Confirmed = data.StringencyData.Confirmed
+
+		fmt.Println(data)
 		fmt.Fprintf(w, "Id of webhook: %v", webHookResponse.Id)
-		fmt.Fprintf(w, "Registered stringency:%v", webHookResponse.StringencyData.Stringency)
-		fmt.Fprintf(w, "Registered confirmed cases: %v", webHookResponse.StringencyData.Confirmed)
+		fmt.Fprintf(w, "Registered stringency:%v", webHookResponse.Stringency)
+		fmt.Fprintf(w, "Registered confirmed cases: %v", webHookResponse.Confirmed)
 
 	case http.MethodGet:
 		err := json.NewEncoder(w).Encode(webHooks)
@@ -68,19 +74,22 @@ func WebHookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getWebhookData(w http.ResponseWriter, r *http.Request, countryName string, date string) Stringency {
+func getWebhookDataStringency(w http.ResponseWriter, r *http.Request, countryName string, date string) Stringency {
 	//Defining variables
 	Code := getCountryCode(w, r, countryName)
 	url := "https://covidtrackerapi.bsg.ox.ac.uk/api/v2/stringency/actions/" + Code + "/" + date + ""
 	body := invokeGet(w, r, url) //Invoking request
 
-	var policyInfo = Stringency{}
-	err := json.Unmarshal([]byte(string(body)), &policyInfo)
+	var webHookdata = Stringency{}
+	err := json.Unmarshal([]byte(string(body)), &webHookdata)
 	if err != nil {
 		fmt.Println("error:", err)
 	}
+	return webHookdata
+}
 
-	return policyInfo
+func getWebhookDataConfirmed(w http.ResponseWriter, r *http.Request) {
+
 }
 
 func ServiceHandler(w http.ResponseWriter, r *http.Request) {
