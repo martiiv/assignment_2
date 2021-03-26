@@ -21,6 +21,8 @@ import (
 	"time" //Used for getting the current date
 )
 
+//TODO Change handler to implement ID properly
+
 //Struct for Json object which will get saved onto firebase
 type JSONWebHook struct {
 	Id guuid.UUID `json: "id"`
