@@ -20,8 +20,6 @@ import (
 	"time" //Used for getting the current date
 )
 
-//TODO implement timer to call function to check for change and find out how to notify user
-
 //Struct for Json object which will get saved onto firebase
 type JSONWebHook struct {
 	Id guuid.UUID `json: "id"`
@@ -107,7 +105,7 @@ func getWebhookResponseObject(w http.ResponseWriter, r *http.Request, hook Webho
 	webHookResponse.Id = guuid.New()                                          //Gives the object an unique ID
 	webHookResponse.WebhookRegistation = hook                                 //Links the WebhookRegistration object with JSONWebhook object
 	dataStringency := getDataStringency(w, r, webHookResponse.Country, today) //gets stringency data
-	dataConfirmed := getWebhookDataConfirmed(w, r, webHookResponse.Country)   //gets confirmed cases
+	dataConfirmed := getDataConfirmed(w, r, webHookResponse.Country)          //gets confirmed cases
 	webHookResponse.Stringency = dataStringency.StringencyData.Stringency_actual
 	webHookResponse.Confirmed = dataConfirmed.All.Population
 
@@ -142,7 +140,7 @@ func getDataStringency(w http.ResponseWriter, r *http.Request, countryName strin
  * Function for getting the amount of confirmed cases for a country
  * This function is almost indentical to one found in the country file however this one takes in parameters
  */
-func getWebhookDataConfirmed(w http.ResponseWriter, r *http.Request, countryName string) All {
+func getDataConfirmed(w http.ResponseWriter, r *http.Request, countryName string) All {
 	//Defining variables
 	url := "https://covid-api.mmediagroup.fr/v1/history?country=" + countryName + "&status=Confirmed"
 	body := invokeGet(w, r, url) //Invoking request
@@ -156,6 +154,12 @@ func getWebhookDataConfirmed(w http.ResponseWriter, r *http.Request, countryName
 	return countryInfo
 }
 
+/*
+ * Function for checking if information from the api has gotten updated
+ * Uses functions:
+ *				getDataStringency() for getting the latest stringency_actual value
+ * 				getDataConfirmed() for getting the latest confirmed cases value
+ */
 func infinityRunner(w http.ResponseWriter, r *http.Request, hook JSONWebHook) {
 	currentTime := time.Now()
 	today := currentTime.Format("2006-01-02")
@@ -163,9 +167,9 @@ func infinityRunner(w http.ResponseWriter, r *http.Request, hook JSONWebHook) {
 	StringencyActual := hook.Stringency
 	Confirmed := hook.Confirmed
 	newStringencyActual := getDataStringency(w, r, hook.Country, today).StringencyData.Stringency_actual //gets stringency data
-	newConfirmed := getWebhookDataConfirmed(w, r, hook.Country).All.Population                           //gets confirmed cases
+	newConfirmed := getDataConfirmed(w, r, hook.Country).All.Population                                  //gets confirmed cases
 
-	fmt.Fprintf(w, "Checking for updated values in field %v \n", hook.Field)
+	fmt.Fprintf(w, "Checking for updated values in field %v  for webhook with ID: %q\n", hook.Field, hook.Id)
 	if (StringencyActual != newStringencyActual) && (hook.Field == "stringency") {
 		hook.Stringency = newStringencyActual
 		fmt.Fprintf(w, "Change occurred in stringency! \n")
