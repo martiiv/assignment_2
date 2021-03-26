@@ -67,9 +67,7 @@ func WebHookHandler(w http.ResponseWriter, r *http.Request) {
 		webHooks = append(webHooks, webHook) //Appends it to the WebhookRegistration object
 		fmt.Println("Webhook " + webHook.Url + " has been registered")
 
-		response := getWebhookResponseObject(w, r, webHook) //Creates a responseobject for DB saving(see struct for fields)
-		//TODO Implement checking here
-		fmt.Println(response.Id.String())
+		getWebhookResponseObject(w, r, webHook) //Creates a responseobject for DB saving(see struct for fields)
 
 	case http.MethodGet: //Case for listing webhooks
 		err := json.NewEncoder(w).Encode(webHooks)
@@ -117,6 +115,8 @@ func getWebhookResponseObject(w http.ResponseWriter, r *http.Request, hook Webho
 	fmt.Fprintf(w, "Registered stringency:%v \n", webHookResponse.Stringency)
 	fmt.Fprintf(w, "Registered confirmed cases: %v \n", webHookResponse.Confirmed)
 
+	infinityRunner(w, r, webHookResponse)
+
 	return webHookResponse
 }
 
@@ -154,4 +154,30 @@ func getWebhookDataConfirmed(w http.ResponseWriter, r *http.Request, countryName
 	}
 
 	return countryInfo
+}
+
+func infinityRunner(w http.ResponseWriter, r *http.Request, hook JSONWebHook) {
+	currentTime := time.Now()
+	today := currentTime.Format("2006-01-02")
+
+	StringencyActual := hook.Stringency
+	Confirmed := hook.Confirmed
+	newStringencyActual := getDataStringency(w, r, hook.Country, today).StringencyData.Stringency_actual //gets stringency data
+	newConfirmed := getWebhookDataConfirmed(w, r, hook.Country).All.Population                           //gets confirmed cases
+
+	fmt.Fprintf(w, "Checking for updated values in field %v \n", hook.Field)
+	if (StringencyActual != newStringencyActual) && (hook.Field == "stringency") {
+		hook.Stringency = newStringencyActual
+		fmt.Fprintf(w, "Change occurred in stringency! \n")
+		fmt.Fprintf(w, "New stringency value: %v \n", hook.Stringency)
+	} else if (Confirmed != newConfirmed) && (hook.Field == "confirmed") {
+		hook.Confirmed = newConfirmed
+		fmt.Fprintf(w, "Change occurred in confirmed cases! \n")
+		fmt.Fprintf(w, "New confirmed value: %v \n", hook.Confirmed)
+	} else {
+		fmt.Println("no change occured")
+	}
+
+	time.Sleep(time.Duration(hook.Timeout) * time.Second)
+	go infinityRunner(w, r, hook)
 }

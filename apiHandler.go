@@ -18,7 +18,7 @@ func handle() {
 	r.HandleFunc("/corona/v1/country/{country_name}/{begin_date}/{end_date}", formatResponse)
 	r.HandleFunc("/corona/v1/policy/{country_name}/{begin_date}/{end_date}", formatOutput)
 	r.HandleFunc("/corona/v1/diag", getDiagnostics)
-	r.HandleFunc("/corona/v1/notifications/{:id}", WebHookHandler)
+	r.HandleFunc("/corona/v1/notifications/", WebHookHandler)
 	log.Fatal(http.ListenAndServe(getPort(), r))
 }
 
