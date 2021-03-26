@@ -16,6 +16,7 @@ import (
 	"fmt"
 	guuid "github.com/google/uuid" //Used for generating unique ID for webhook
 	"github.com/gorilla/mux"
+	"go/types"
 	"net/http"
 	"time" //Used for getting the current date
 )
@@ -74,20 +75,13 @@ func WebHookHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case http.MethodDelete: //Case for deleting webhook
-		i := 0
-		for _, hook := range jsonHooks {
-			if hook.Id.String() == id {
-				fmt.Printf("Deleted Webhook with ID: %s", hook.Id)
-				//TODO delete webhook  here
-				//TODO delete jsonHook here
-				i--
+		for i := 0; i <= cap(jsonHooks); i++ {
+			if jsonHooks[i].Id.String() == id {
+				fmt.Printf("Deleted Webhook with ID: %s", jsonHooks[i].Id)
+				jsonHooks = append(jsonHooks[:i], jsonHooks[i+1:]...)
 			}
-			i++
 		}
-	default:
-		http.Error(w, "Invalid method "+r.Method, http.StatusBadRequest)
 	}
-
 }
 
 /*
@@ -155,6 +149,9 @@ func getDataConfirmed(w http.ResponseWriter, r *http.Request, countryName string
 
 /*
  * Function for checking if information from the api has gotten updated
+ * If the field trigger is:
+ *							ON_CHANGE : The application will notify the user if there has been a change in the field
+ *							ON_TIMEOUT: The application will notify the user when the timeout is 0 regardless of change
  * Uses functions:
  *				getDataStringency() for getting the latest stringency_actual value
  * 				getDataConfirmed() for getting the latest confirmed cases value
@@ -205,9 +202,11 @@ func infinityRunner(w http.ResponseWriter, r *http.Request, hook JSONWebHook) {
 		} else { //If no new information is found
 			fmt.Println("no change occured") //Print no change in terminal
 		}
-
 	}
 
 	time.Sleep(time.Duration(hook.Timeout) * time.Second)
 	go infinityRunner(w, r, hook)
+}
+func remove(slice []types.Slice, s int) []types.Slice {
+	return append(slice[:s], slice[s+1:]...)
 }
