@@ -3,9 +3,8 @@ package main
 /*
  * File for firebase(database) functionality
  * author Martin Iversen
- * 22.03.2020
+ * 28.03.2020
  * version 0.8
- *
  */
 import (
 	"cloud.google.com/go/firestore"

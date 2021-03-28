@@ -108,12 +108,11 @@ func singleHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case http.MethodDelete: //Case for deleting webhook
-		for i := 0; i < cap(jsonHooks); i++ {
+		DeleteWebhook(id)
+		for i := range jsonHooks {
 			if jsonHooks[i].Id == id {
-				DeleteWebhook(jsonHooks[i].Id)
-				jsonHooks = append(jsonHooks[:i], jsonHooks[i+1:]...)
-				webHooks = append(webHooks[:i], webHooks[i+1:]...)
-				fmt.Printf("Deleted Webhook with ID: %s", jsonHooks[i].Id)
+				jsonHooks = append(jsonHooks[:i+1], jsonHooks[i+1:]...)
+				fmt.Fprintf(w, "Deleted webhook with id:"+id)
 			}
 		}
 	}

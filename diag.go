@@ -13,10 +13,9 @@ var startTime time.Time
  * This file contains code for the diag endpoint
  * This endpoint will provide a user with information regarding application diagnostics
  * @author Martin Iversen
- * @version 0.1
+ * @version 1.0
  * @date 09.03.2021
  */
-//TODO Implement endpoint
 //TODO Handle errors
 func getDiagnostics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -53,6 +52,12 @@ func getDiagnostics(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `"CovidCasesAPI": "%v+","CovidPoliciesAPI": "%v"
 							,"CountriesAPI:" "%v"
                               ,"version": "v1",
-                               "uptime: "%v"`,
-		casesCode, policyCode, countryCode, int64(time.Since(startTime).Seconds()))
+                               "uptime: "%v",
+                               ,"number of webhooks:%v`,
+		casesCode, policyCode, countryCode, int64(time.Since(startTime).Seconds()), getWebHooks())
+}
+func getWebHooks() int {
+	docs, _ := GetAll()
+	i := len(docs)
+	return i
 }
