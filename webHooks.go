@@ -12,14 +12,16 @@ package main
  * version 0.7
  */
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"io/ioutil"
+	"log"
 	"net/http"
+	"strconv"
 	"time" //Used for getting the current date
 )
-
-//TODO Change handler to implement ID properly
 
 //Struct for Json object which will get saved onto firebase
 type JSONWebHook struct {
@@ -66,6 +68,9 @@ func WebHooksHandler(w http.ResponseWriter, r *http.Request) {
 
 		entry.Id, _ = AddWebhook(entry)
 		update(entry.Id, entry)
+
+		fmt.Fprintf(w, "Id of registered webhook: %v \n", entry.Id)
+		fmt.Fprintf(w, "Status code: %v \n", http.StatusCreated)
 		infinityRunner(w, r, entry)
 
 	case http.MethodGet: //Case for listing webhooks
@@ -137,10 +142,88 @@ func getWebhookResponseObject(w http.ResponseWriter, r *http.Request, hook Webho
 	}
 	webHookResponse.Confirmed = dataConfirmed.All.Population
 
-	fmt.Fprintf(w, "Id of registered webhook: %v \n", webHookResponse.Id)
-	fmt.Fprintf(w, "Status code: %v \n", http.StatusCreated)
-
 	return webHookResponse
+}
+
+/*
+ * Function for checking if information from the api has gotten updated
+ * If the field trigger is:
+ *							ON_CHANGE : The application will notify the user if there has been a change in the field
+ *							ON_TIMEOUT: The application will notify the user when the timeout is 0 regardless of change
+ * Uses functions:
+ *				getDataStringency() for getting the latest stringency_actual value
+ * 				getDataConfirmed() for getting the latest confirmed cases value
+ */
+func infinityRunner(w http.ResponseWriter, r *http.Request, hook JSONWebHook) {
+	currentTime := time.Now()
+	today := currentTime.Format("2006-01-02")
+
+	StringencyActual := hook.Stringency
+	Confirmed := hook.Confirmed
+	newStringencyActual := getDataStringency(w, r, hook.Country, today).StringencyData.Stringency_actual //gets stringency data
+	newConfirmed := getDataConfirmed(w, r, hook.Country).All.Population                                  //gets confirmed cases
+
+	switch hook.Trigger {
+
+	case "ON_CHANGE":
+		if (StringencyActual != newStringencyActual) && (hook.Field == "stringency") { //If field is stringency it gets checked
+			update(hook.Id, hook)
+			callUrl(hook.Url, hook)
+			fmt.Fprintf(w, "Change occurred in stringency! \n")
+			fmt.Fprintf(w, "New stringency value: %v \n", hook.Stringency)
+
+		} else if (Confirmed != newConfirmed) && (hook.Field == "confirmed") { //If field is confirmed it gets checked
+			update(hook.Id, hook)
+			callUrl(hook.Url, hook)
+			fmt.Fprintf(w, "Change occurred in confirmed cases! \n")
+			fmt.Fprintf(w, "New confirmed value: %v \n", hook.Confirmed)
+		}
+
+	case "ON_TIMEOUT":
+		fmt.Fprintf(w, "Timeout reached! \n Checking for updated values in field %v  for webhook with ID: %q\n", hook.Field, hook.Id)
+		if hook.Field == "stringency" { //If field is stringency it gets checked
+			update(hook.Id, hook)
+			callUrl(hook.Id, hook)
+
+		} else if hook.Field == "confirmed" { //If field is confirmed it gets checked
+			update(hook.Id, hook)
+			callUrl(hook.Id, hook)
+		}
+	}
+
+	time.Sleep(time.Duration(hook.Timeout) * time.Second)
+	go infinityRunner(w, r, hook)
+}
+
+func callUrl(url string, data interface{}) {
+	content, err := json.Marshal(data)
+	if err != nil {
+		return
+	}
+
+	// Prepare request
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(content))
+	if err != nil {
+		log.Printf("%v", "Error during request creation.")
+		return
+	}
+
+	// Send request
+	req.Header.Set("Content-Type", "application/json")
+	client := http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		log.Println("Error in HTTP request: " + err.Error())
+		return
+	}
+	response, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Println("Something is wrong with invocation response: " + err.Error())
+		return
+	}
+
+	fmt.Println("Webhook invoked. Received status code " + strconv.Itoa(res.StatusCode) +
+		" and body: " + string(response))
 }
 
 /*
@@ -177,65 +260,4 @@ func getDataConfirmed(w http.ResponseWriter, r *http.Request, countryName string
 	}
 
 	return countryInfo
-}
-
-/*
- * Function for checking if information from the api has gotten updated
- * If the field trigger is:
- *							ON_CHANGE : The application will notify the user if there has been a change in the field
- *							ON_TIMEOUT: The application will notify the user when the timeout is 0 regardless of change
- * Uses functions:
- *				getDataStringency() for getting the latest stringency_actual value
- * 				getDataConfirmed() for getting the latest confirmed cases value
- */
-func infinityRunner(w http.ResponseWriter, r *http.Request, hook JSONWebHook) {
-	currentTime := time.Now()
-	today := currentTime.Format("2006-01-02")
-
-	StringencyActual := hook.Stringency
-	Confirmed := hook.Confirmed
-	newStringencyActual := getDataStringency(w, r, hook.Country, today).StringencyData.Stringency_actual //gets stringency data
-	newConfirmed := getDataConfirmed(w, r, hook.Country).All.Population                                  //gets confirmed cases
-
-	switch hook.Trigger {
-	case "ON_CHANGE":
-		fmt.Fprintf(w, "Checking for updated values in field %v  for webhook with ID: %q\n", hook.Field, hook.Id)
-		if (StringencyActual != newStringencyActual) && (hook.Field == "stringency") { //If field is stringency it gets checked
-			hook.Stringency = newStringencyActual
-			fmt.Fprintf(w, "Change occurred in stringency! \n")
-			fmt.Fprintf(w, "New stringency value: %v \n", hook.Stringency)
-		} else if (Confirmed != newConfirmed) && (hook.Field == "confirmed") { //If field is confirmed it gets checked
-			hook.Confirmed = newConfirmed
-			fmt.Fprintf(w, "Change occurred in confirmed cases! \n")
-			fmt.Fprintf(w, "New confirmed value: %v \n", hook.Confirmed)
-		} else { //If no new information is found
-			fmt.Println("no change occured") //Print no change in terminal
-		}
-
-	case "ON_TIMEOUT":
-		fmt.Fprintf(w, "Timeout reached! \n Checking for updated values in field %v  for webhook with ID: %q\n", hook.Field, hook.Id)
-		if hook.Field == "stringency" { //If field is stringency it gets checked
-			hook.Stringency = newStringencyActual
-
-			if StringencyActual != newStringencyActual {
-				fmt.Fprintf(w, "New stringency value detected!: %v \n", hook.Stringency)
-			} else {
-				fmt.Fprintf(w, "No change detected in stringency trend!")
-			}
-
-		} else if hook.Field == "confirmed" { //If field is confirmed it gets checked
-			hook.Confirmed = newConfirmed
-
-			if Confirmed != newConfirmed {
-				fmt.Fprintf(w, "New confirmed value detected!: %v \n", hook.Confirmed)
-			} else {
-				fmt.Fprintf(w, "No change occurred in confirmed cases! \n")
-			}
-		} else { //If no new information is found
-			fmt.Println("no change occured") //Print no change in terminal
-		}
-	}
-
-	time.Sleep(time.Duration(hook.Timeout) * time.Second)
-	go infinityRunner(w, r, hook)
 }
