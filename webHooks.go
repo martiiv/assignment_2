@@ -170,13 +170,13 @@ func infinityRunner(w http.ResponseWriter, r *http.Request, hook JSONWebHook) {
 	case "ON_CHANGE":
 		if (StringencyActual != newStringencyActual) && (hook.Field == "stringency") { //If field is stringency it gets checked
 			update(hook.Url, hook)
-			callUrl(hook.Url, hook)
+			callUrl(hook.Url, Response(hook))
 			fmt.Fprintf(w, "Change occurred in stringency! \n")
 			fmt.Fprintf(w, "New stringency value: %v \n", hook.Stringency)
 
 		} else if (Confirmed != newConfirmed) && (hook.Field == "confirmed") { //If field is confirmed it gets checked
 			update(hook.Url, hook)
-			callUrl(hook.Url, hook)
+			callUrl(hook.Url, Response(hook))
 			fmt.Fprintf(w, "Change occurred in confirmed cases! \n")
 			fmt.Fprintf(w, "New confirmed value: %v \n", hook.Confirmed)
 		}
@@ -184,11 +184,11 @@ func infinityRunner(w http.ResponseWriter, r *http.Request, hook JSONWebHook) {
 	case "ON_TIMEOUT":
 		if hook.Field == "stringency" { //If field is stringency it gets checked
 			update(hook.Url, hook)
-			callUrl(hook.Url, hook)
+			callUrl(hook.Url, Response(hook))
 
 		} else if hook.Field == "confirmed" { //If field is confirmed it gets checked
 			update(hook.Url, hook)
-			callUrl(hook.Url, hook)
+			callUrl(hook.Url, Response(hook))
 		}
 	}
 
@@ -224,6 +224,22 @@ func callUrl(url string, data interface{}) {
 
 	fmt.Println("Webhook invoked. Received status code " + strconv.Itoa(res.StatusCode) +
 		" and body: " + string(response))
+}
+
+func Response(hook JSONWebHook) JSONWebHook {
+	switch hook.Field {
+	case "stringency":
+		var stringencyResponse JSONWebHook
+		stringencyResponse.Country = hook.Country
+		stringencyResponse.Stringency = hook.Stringency
+		return stringencyResponse
+	case "confirmed":
+		var confirmedResponse JSONWebHook
+		confirmedResponse.Country = hook.Country
+		confirmedResponse.Confirmed = hook.Confirmed
+		return confirmedResponse
+	}
+	return hook
 }
 
 /*
