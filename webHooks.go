@@ -14,9 +14,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	guuid "github.com/google/uuid" //Used for generating unique ID for webhook
 	"github.com/gorilla/mux"
-	"go/types"
 	"net/http"
 	"time" //Used for getting the current date
 )
@@ -25,10 +23,10 @@ import (
 
 //Struct for Json object which will get saved onto firebase
 type JSONWebHook struct {
-	Id guuid.UUID `json: "id"`
+	Id         string  `json: "id"`
+	Confirmed  int     `json:"confirmed"`
+	Stringency float64 `json:"stringency"`
 	WebhookRegistation
-	Confirmed  int     `json:confirmed`
-	Stringency float64 `json:stringency`
 }
 
 //Struct for the webhook info passed in by user
@@ -53,9 +51,7 @@ var jsonHooks []JSONWebHook
  * Uses function:
  *				GetWebhookResponseObject
  */
-func WebHookHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"] //ID from url
+func WebHooksHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 
 	case http.MethodPost: //Case for registering webhook
@@ -64,23 +60,54 @@ func WebHookHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			http.Error(w, "Not able to decode http Request "+err.Error(), http.StatusBadRequest)
 		}
-
-		webHooks = append(webHooks, webHook) //Appends it to the WebhookRegistration object
-
+		webHooks = append(webHooks, webHook)             //Appends it to the WebhookRegistration object
 		entry := getWebhookResponseObject(w, r, webHook) //Creates a responseobject for DB saving(see struct for fields)
-		AddWebhook(entry)
+		jsonHooks = append(jsonHooks, entry)
+
+		entry.Id, _ = AddWebhook(entry)
+		update(entry.Id, entry)
+		infinityRunner(w, r, entry)
 
 	case http.MethodGet: //Case for listing webhooks
-		err := json.NewEncoder(w).Encode(webHooks)
+		list, err := GetAll()
 		if err != nil {
-			http.Error(w, "Not able to encode http Request "+err.Error(), http.StatusBadRequest)
+			http.Error(w, "Error occurred when listing webhooks", http.StatusBadRequest)
+		}
+		for _, doc := range list {
+			webhook := JSONWebHook{}
+			if err := doc.DataTo(&webhook); err != nil {
+				http.Error(w, "Tried to iterate through webhooks but failed", http.StatusBadRequest)
+			}
+			fmt.Fprintf(w, "%v\n", webhook)
+		}
+	}
+
+}
+
+func singleHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"] //ID from url
+
+	switch r.Method {
+	case http.MethodGet:
+		for i := 0; i < cap(jsonHooks); i++ {
+			if jsonHooks[i].Id == id {
+				object, err := client.Collection(Collection).Doc(id).Get(ctx)
+				if err != nil {
+					http.Error(w, "error when trying to list object from database", http.StatusInternalServerError)
+				}
+				m := object.Data()
+				fmt.Fprintf(w, "%v", m)
+			}
 		}
 
 	case http.MethodDelete: //Case for deleting webhook
-		for i := 0; i <= cap(jsonHooks); i++ {
-			if jsonHooks[i].Id.String() == id {
-				fmt.Printf("Deleted Webhook with ID: %s", jsonHooks[i].Id)
+		for i := 0; i < cap(jsonHooks); i++ {
+			if jsonHooks[i].Id == id {
+				DeleteWebhook(jsonHooks[i].Id)
 				jsonHooks = append(jsonHooks[:i], jsonHooks[i+1:]...)
+				webHooks = append(webHooks[:i], webHooks[i+1:]...)
+				fmt.Printf("Deleted Webhook with ID: %s", jsonHooks[i].Id)
 			}
 		}
 	}
@@ -98,24 +125,20 @@ func getWebhookResponseObject(w http.ResponseWriter, r *http.Request, hook Webho
 	today := currentTime.Format("2006-01-02")
 
 	webHookResponse := JSONWebHook{}
-	webHookResponse.Id = guuid.New()                                          //Gives the object an unique ID
-	webHookResponse.WebhookRegistation = hook                                 //Links the WebhookRegistration object with JSONWebhook object
-	dataStringency := getDataStringency(w, r, webHookResponse.Country, today) //gets stringency data
-	dataConfirmed := getDataConfirmed(w, r, webHookResponse.Country)          //gets confirmed cases
+	dataStringency := getDataStringency(w, r, hook.Country, today) //gets stringency data
+
+	dataConfirmed := getDataConfirmed(w, r, hook.Country) //gets confirmed cases
+	webHookResponse.WebhookRegistation = hook             //Links the WebhookRegistration object with JSONWebhook object
 
 	if dataStringency.StringencyData.Stringency_actual == 0 {
 		webHookResponse.Stringency = dataStringency.StringencyData.Stringency
-	} else if dataStringency.StringencyData.Stringency == 0 {
+	} else {
 		webHookResponse.Stringency = dataStringency.StringencyData.Stringency_actual
 	}
 	webHookResponse.Confirmed = dataConfirmed.All.Population
 
-	fmt.Println(webHookResponse)
-
 	fmt.Fprintf(w, "Id of registered webhook: %v \n", webHookResponse.Id)
 	fmt.Fprintf(w, "Status code: %v \n", http.StatusCreated)
-
-	infinityRunner(w, r, webHookResponse)
 
 	return webHookResponse
 }
@@ -215,7 +238,4 @@ func infinityRunner(w http.ResponseWriter, r *http.Request, hook JSONWebHook) {
 
 	time.Sleep(time.Duration(hook.Timeout) * time.Second)
 	go infinityRunner(w, r, hook)
-}
-func remove(slice []types.Slice, s int) []types.Slice {
-	return append(slice[:s], slice[s+1:]...)
 }
