@@ -66,9 +66,9 @@ func WebHookHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		webHooks = append(webHooks, webHook) //Appends it to the WebhookRegistration object
-		fmt.Println("Webhook " + webHook.Url + " has been registered")
 
-		getWebhookResponseObject(w, r, webHook) //Creates a responseobject for DB saving(see struct for fields)
+		entry := getWebhookResponseObject(w, r, webHook) //Creates a responseobject for DB saving(see struct for fields)
+		AddWebhook(entry)
 
 	case http.MethodGet: //Case for listing webhooks
 		err := json.NewEncoder(w).Encode(webHooks)
@@ -102,11 +102,18 @@ func getWebhookResponseObject(w http.ResponseWriter, r *http.Request, hook Webho
 	webHookResponse.WebhookRegistation = hook                                 //Links the WebhookRegistration object with JSONWebhook object
 	dataStringency := getDataStringency(w, r, webHookResponse.Country, today) //gets stringency data
 	dataConfirmed := getDataConfirmed(w, r, webHookResponse.Country)          //gets confirmed cases
-	webHookResponse.Stringency = dataStringency.StringencyData.Stringency_actual
+
+	if dataStringency.StringencyData.Stringency_actual == 0 {
+		webHookResponse.Stringency = dataStringency.StringencyData.Stringency
+	} else if dataStringency.StringencyData.Stringency == 0 {
+		webHookResponse.Stringency = dataStringency.StringencyData.Stringency_actual
+	}
 	webHookResponse.Confirmed = dataConfirmed.All.Population
 
+	fmt.Println(webHookResponse)
+
 	fmt.Fprintf(w, "Id of registered webhook: %v \n", webHookResponse.Id)
-	fmt.Fprintf(w, "Status code: %v", http.StatusCreated)
+	fmt.Fprintf(w, "Status code: %v \n", http.StatusCreated)
 
 	infinityRunner(w, r, webHookResponse)
 

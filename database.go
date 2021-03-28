@@ -10,6 +10,7 @@ package main
 import (
 	"cloud.google.com/go/firestore"
 	"context"
+	"errors"
 	firebase "firebase.google.com/go"
 	"fmt"
 	"google.golang.org/api/option"
@@ -17,6 +18,8 @@ import (
 
 var ctx context.Context
 var client *firestore.Client
+
+const Collection = "webhook"
 
 func Init() error {
 	// Firebase initialisation
@@ -34,5 +37,12 @@ func Init() error {
 		return fmt.Errorf("error initializing client: %v", err)
 	}
 	return nil
+}
 
+func AddWebhook(webhook interface{}) (string, error) {
+	newEntry, _, err := client.Collection(Collection).Add(ctx, webhook)
+	if err != nil {
+		return "", errors.New("Error while adding webhook to database: " + err.Error())
+	}
+	return newEntry.ID, nil
 }

@@ -7,4 +7,5 @@ require (
 	firebase.google.com/go v3.13.0+incompatible
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/mux v1.8.0
+	google.golang.org/api v0.40.0
 )
