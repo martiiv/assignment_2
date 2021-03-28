@@ -13,6 +13,7 @@ import "time"
 //TODO Implement endpoint
 //TODO Handle errors
 func main() {
+	Init()
 	startTime = time.Now()
 	handle()
 }
