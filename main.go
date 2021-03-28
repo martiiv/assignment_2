@@ -7,7 +7,7 @@ import "time"
  * Will use packages from the following files:
  *
  * @author Martin Iversen
- * @version 0.1
+ * @version 1.0
  * @date 09.03.2021
  */
 //TODO Implement endpoint
