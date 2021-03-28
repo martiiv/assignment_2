@@ -10,8 +10,8 @@ package main
  *					getPolicy()    		for getting stringency information
  * 					formatOutput() 		for formatting output
  * @author Martin Iversen
- * @version 0.8
- * @date 18.03.2021
+ * @version 1.0
+ * @date 28.03.2021
  */
 //TODO Handle errors
 import (

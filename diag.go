@@ -49,11 +49,11 @@ func getDiagnostics(w http.ResponseWriter, r *http.Request) {
 		defer getCountriesAPI.Body.Close()
 	}
 
-	fmt.Fprintf(w, `"CovidCasesAPI": "%v+","CovidPoliciesAPI": "%v"
+	fmt.Fprintf(w, `"CovidCasesAPI": "%v","CovidPoliciesAPI": "%v"
 							,"CountriesAPI:" "%v"
                               ,"version": "v1",
                                "uptime: "%v",
-                               ,"number of webhooks:%v`,
+                               "number of webhooks:%v`,
 		casesCode, policyCode, countryCode, int64(time.Since(startTime).Seconds()), getWebHooks())
 }
 func getWebHooks() int {

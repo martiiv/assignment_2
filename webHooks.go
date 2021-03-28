@@ -8,8 +8,8 @@ package main
  *									GetDataStringency 			For getting stringency as of today for JSONWebhook
  *									GetDataConfirmed			For getting confirmed cases as of today for JSONWebhook
  * Martin Iversen
- * 25.03.2020
- * version 0.7
+ * 28.03.2020
+ * version 0.95
  */
 import (
 	"bytes"
@@ -96,16 +96,8 @@ func singleHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		for i := 0; i < cap(jsonHooks); i++ {
-			if jsonHooks[i].Id == id {
-				object, err := client.Collection(Collection).Doc(id).Get(ctx)
-				if err != nil {
-					http.Error(w, "error when trying to list object from database", http.StatusInternalServerError)
-				}
-				m := object.Data()
-				fmt.Fprintf(w, "%v", m)
-			}
-		}
+		hook, _ := client.Collection(Collection).Doc(id).Get(ctx)
+		fmt.Fprintf(w, "%v", hook.Data())
 
 	case http.MethodDelete: //Case for deleting webhook
 		DeleteWebhook(id)

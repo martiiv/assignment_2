@@ -9,8 +9,8 @@ package main
  *					getCountryRecovered() for getting recovered cases
  *					formatResponse() for formatting output
  * @author Martin Iversen
- * @version 0.8
- * @date 17.03.2021
+ * @version 1.0
+ * @date 28.03.2021
  */
 //TODO Handle errors
 import (
@@ -58,7 +58,11 @@ func formatResponse(w http.ResponseWriter, r *http.Request) {
 	//Formatting output as specified in assignment
 	fmt.Fprintf(w, "country:"+confirmed.All.Country+"\n")
 	fmt.Fprintf(w, "continent:"+confirmed.All.Continent+"\n")
-	fmt.Fprintf(w, "scope: "+startDate+"-"+endDate+"\n")
+	if startDate == "" || endDate == "" {
+		fmt.Fprintf(w, "scope: total")
+	} else {
+		fmt.Fprintf(w, "scope: "+startDate+"-"+endDate+"\n")
+	}
 	fmt.Fprintf(w, "confirmed:%v \n", confirmedInterval)
 	fmt.Fprintf(w, "recovered:%v\n", recoveredInterval)
 	fmt.Fprintf(w, "population_percentage:%v\n", math.Ceil(populationPercentage*100)/100)
