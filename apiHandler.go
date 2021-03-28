@@ -10,7 +10,7 @@ import (
 /*
  * The handler file, will be used for implementing handlers for each endpoint
  * @author Martin Iversen
- * @version 0.4
+ * @version 0.9
  * @date 18.03.2021
  */
 func handle() {

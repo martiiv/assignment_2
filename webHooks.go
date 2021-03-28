@@ -25,9 +25,9 @@ import (
 
 //Struct for Json object which will get saved onto firebase
 type JSONWebHook struct {
-	Id         string  `json: "id"`
-	Confirmed  int     `json:"confirmed"`
-	Stringency float64 `json:"stringency"`
+	Id         string
+	Confirmed  int
+	Stringency float64
 	WebhookRegistation
 }
 
@@ -39,10 +39,6 @@ type WebhookRegistation struct {
 	Country string `json:"country"` //The country in question
 	Trigger string `json:"trigger"` //ON CHANGE or ON TIMEOUT deciding when to look for updated information
 }
-
-var Key = "something"
-
-var Secret []byte
 
 var webHooks []WebhookRegistation
 var jsonHooks []JSONWebHook
@@ -83,7 +79,12 @@ func WebHooksHandler(w http.ResponseWriter, r *http.Request) {
 			if err := doc.DataTo(&webhook); err != nil {
 				http.Error(w, "Tried to iterate through webhooks but failed", http.StatusBadRequest)
 			}
-			fmt.Fprintf(w, "%v\n", webhook)
+			fmt.Fprintf(w, "\n"+webhook.Id+"\n")
+			fmt.Fprintf(w, webhook.Url+"\n")
+			fmt.Fprintf(w, "%v\n", webhook.Timeout)
+			fmt.Fprintf(w, webhook.Field+"\n")
+			fmt.Fprintf(w, webhook.Country+"\n")
+			fmt.Fprintf(w, webhook.Trigger+"\n")
 		}
 	}
 
@@ -155,6 +156,7 @@ func getWebhookResponseObject(w http.ResponseWriter, r *http.Request, hook Webho
  * 				getDataConfirmed() for getting the latest confirmed cases value
  */
 func infinityRunner(w http.ResponseWriter, r *http.Request, hook JSONWebHook) {
+	time.Sleep(time.Duration(hook.Timeout) * time.Second)
 	currentTime := time.Now()
 	today := currentTime.Format("2006-01-02")
 
@@ -167,31 +169,29 @@ func infinityRunner(w http.ResponseWriter, r *http.Request, hook JSONWebHook) {
 
 	case "ON_CHANGE":
 		if (StringencyActual != newStringencyActual) && (hook.Field == "stringency") { //If field is stringency it gets checked
-			update(hook.Id, hook)
+			update(hook.Url, hook)
 			callUrl(hook.Url, hook)
 			fmt.Fprintf(w, "Change occurred in stringency! \n")
 			fmt.Fprintf(w, "New stringency value: %v \n", hook.Stringency)
 
 		} else if (Confirmed != newConfirmed) && (hook.Field == "confirmed") { //If field is confirmed it gets checked
-			update(hook.Id, hook)
+			update(hook.Url, hook)
 			callUrl(hook.Url, hook)
 			fmt.Fprintf(w, "Change occurred in confirmed cases! \n")
 			fmt.Fprintf(w, "New confirmed value: %v \n", hook.Confirmed)
 		}
 
 	case "ON_TIMEOUT":
-		fmt.Fprintf(w, "Timeout reached! \n Checking for updated values in field %v  for webhook with ID: %q\n", hook.Field, hook.Id)
 		if hook.Field == "stringency" { //If field is stringency it gets checked
-			update(hook.Id, hook)
-			callUrl(hook.Id, hook)
+			update(hook.Url, hook)
+			callUrl(hook.Url, hook)
 
 		} else if hook.Field == "confirmed" { //If field is confirmed it gets checked
-			update(hook.Id, hook)
-			callUrl(hook.Id, hook)
+			update(hook.Url, hook)
+			callUrl(hook.Url, hook)
 		}
 	}
 
-	time.Sleep(time.Duration(hook.Timeout) * time.Second)
 	go infinityRunner(w, r, hook)
 }
 
@@ -258,6 +258,5 @@ func getDataConfirmed(w http.ResponseWriter, r *http.Request, countryName string
 	if err != nil {
 		fmt.Println("error:", err)
 	}
-
 	return countryInfo
 }

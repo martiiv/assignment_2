@@ -4,7 +4,7 @@ package main
  * File for firebase(database) functionality
  * author Martin Iversen
  * 22.03.2020
- * version 0.2
+ * version 0.8
  *
  */
 import (
