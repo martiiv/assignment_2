@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -19,7 +20,7 @@ import (
  * @date 29.03.2021
  */
 func handle() {
-
+	fmt.Println("listening" + getPort())
 	r := mux.NewRouter()
 	r.HandleFunc("/corona/v1/country/{country_name}/{begin_date}/{end_date}", formatResponse) //country endpoint
 	r.HandleFunc("/corona/v1/policy/{country_name}/{begin_date}/{end_date}", formatOutput)    //Policy endpoint
@@ -27,6 +28,7 @@ func handle() {
 	r.HandleFunc("/corona/v1/notifications/", WebHooksHandler)                                //Webhook endpoint 1
 	r.HandleFunc("/corona/v1/notifications/{id}/", singleHandler)                             //Webhook endpoint 2
 	log.Fatal(http.ListenAndServe(getPort(), r))
+
 }
 
 /*

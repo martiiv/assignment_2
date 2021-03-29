@@ -13,10 +13,10 @@ import (
  * @date 29.03.2021
  */
 func main() {
-	err := Init()
-	if err != nil {
-		fmt.Println("Error occurred when initializing the database!", err.Error())
-	}
+	fmt.Println("Starting")
+	Init()
+
 	startTime = time.Now()
+	fmt.Println("initialized handler")
 	handle()
 }
