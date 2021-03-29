@@ -13,7 +13,6 @@ package main
  * @version 1.0
  * @date 28.03.2021
  */
-//TODO Handle errors
 import (
 	"encoding/json"
 	"fmt"
@@ -49,12 +48,19 @@ type CountryCode struct {
 	Alpha3Code string
 }
 
+/*
+ * Function for formatting json output to client
+ * Uses functions:
+ *					getPolicy() To get information about policies and stringency
+ */
 func formatOutput(w http.ResponseWriter, r *http.Request) {
+	//Defining variables
 	w.Header().Set("Content-Type", "application/json")
 	vars := mux.Vars(r)
-	countryName := vars["country_name"]
-	startDate := vars["begin_date"] //Start date from url
-	endDate := vars["end_date"]     //End date from url
+	countryName := vars["country_name"] //Country name from url
+	startDate := vars["begin_date"]     //Start date from url
+	endDate := vars["end_date"]         //End date from url
+
 	policyStartDate := getPolicy(w, r, startDate)
 	policyEndDate := getPolicy(w, r, endDate)
 	confirmedDiff := float64(policyEndDate.StringencyData.Stringency_actual - policyStartDate.StringencyData.Stringency_actual)
@@ -70,23 +76,25 @@ func formatOutput(w http.ResponseWriter, r *http.Request) {
  * Method for getting a json object containing information about stringency trends
  * This method uses the https://covidtrackerapi.bsg.ox.ac.uk api
  * It returns a Stringency object with information
+ * Uses function getCountryCode() from assignment 1 to get the countrycode of a countryName
+ * returns an object containing policy information
  */
 func getPolicy(w http.ResponseWriter, r *http.Request, date string) Stringency {
 	//Defining variables
 	vars := mux.Vars(r)
-	countryName := vars["country_name"]
+	countryName := vars["country_name"] //Countryname from url
 
-	Code := getCountryCode(w, r, countryName)
+	Code := getCountryCode(w, r, countryName) //Gets country code
 	url := "https://covidtrackerapi.bsg.ox.ac.uk/api/v2/stringency/actions/" + Code + "/" + date + ""
 	body := invokeGet(w, r, url) //Invoking request
 
-	var policyInfo = Stringency{}
+	var policyInfo = Stringency{} //Defining the object we will be unmarshalling into
 	err := json.Unmarshal([]byte(string(body)), &policyInfo)
 	if err != nil {
-		fmt.Println("error:", err)
+		fmt.Fprintf(w, "error occurred when unmarshalling object:%v", http.StatusBadRequest)
 	}
 
-	return policyInfo
+	return policyInfo //Returns an object containing policyinformation see struct Stringency
 }
 
 /*

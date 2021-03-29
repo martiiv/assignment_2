@@ -1,19 +1,24 @@
 package main
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 /*
  * The main file used for running the application
- * Will use packages from the following files:
  *
  * @author Martin Iversen
  * @version 1.0
- * @date 09.03.2021
+ * @date 29.03.2021
  */
 //TODO Implement endpoint
 //TODO Handle errors
 func main() {
-	Init()
+	err := Init()
+	if err != nil {
+		fmt.Println("Error occurred when initializing the database!")
+	}
 	startTime = time.Now()
 	handle()
 }

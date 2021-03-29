@@ -5,6 +5,13 @@ import (
 	"net/http"
 )
 
+/*
+ * File containing a method for handling a get request
+ * Provided with more time this file would contain functions used frequently through the app
+ * author Martin Iversen
+ * date 29ø.03.2021
+ * version 1.0
+ */
 func invokeGet(w http.ResponseWriter, r *http.Request, url string) []byte {
 	w.Header().Set("Content-Type", "application/json")
 	client := &http.Client{}
