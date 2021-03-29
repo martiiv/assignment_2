@@ -19,6 +19,7 @@ import (
  * @date 29.03.2021
  */
 func handle() {
+
 	r := mux.NewRouter()
 	r.HandleFunc("/corona/v1/country/{country_name}/{begin_date}/{end_date}", formatResponse) //country endpoint
 	r.HandleFunc("/corona/v1/policy/{country_name}/{begin_date}/{end_date}", formatOutput)    //Policy endpoint
